@@ -5,3 +5,7 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# Ignorer les figures générées mais conserver les sources indispensables
+figures/*
+!figures/sources/

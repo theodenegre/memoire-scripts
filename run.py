@@ -1,9 +1,9 @@
 """Génère les figures du mémoire.
 
 Usage :
-    python scripts/run.py --chapter ch5
-    python scripts/run.py --chapter all
-    python scripts/run.py --chapter all --dry-run
+    python run.py --chapter ch5
+    python run.py --chapter all
+    python run.py --chapter all --dry-run
 """
 
 from __future__ import annotations
@@ -14,39 +14,39 @@ import sys
 from pathlib import Path
 from typing import Iterable
 
-# Racine du dépôt (parent de scripts/)
-REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = Path(__file__).resolve().parent
+# Racine du dépôt (contenant run.py)
+REPO_ROOT = Path(__file__).resolve().parent
+CODE_DIR = REPO_ROOT / "code"
 
 CHAPTER_SCRIPTS: dict[str, list[Path]] = {
     "ch3": [
-        SCRIPTS_DIR / "ch3_ensemble_fractales" / "cantor_etapes.py",
-        SCRIPTS_DIR / "ch3_ensemble_fractales" / "ifs_1d_etapes.py",
+        CODE_DIR / "ch3_ensemble_fractales" / "cantor_etapes.py",
+        CODE_DIR / "ch3_ensemble_fractales" / "ifs_1d_etapes.py",
     ],
     "ch4": [
-        SCRIPTS_DIR / "ch4_proprietes_hx" / "chemin_cantor_sierpinski.py",
+        CODE_DIR / "ch4_proprietes_hx" / "chemin_cantor_sierpinski.py",
     ],
     "ch5": [
-        SCRIPTS_DIR / "ch5_transformations" / "ifs_labels.py",
-        SCRIPTS_DIR / "ch5_transformations" / "fractales_etapes.py",
-        SCRIPTS_DIR / "ch5_transformations" / "fougere_poly.py",
-        SCRIPTS_DIR / "ch5_transformations" / "fougere_singleton.py",
-        SCRIPTS_DIR / "ch5_transformations" / "fougere_condensation.py",
-        SCRIPTS_DIR / "ch5_transformations" / "menger.py",
-        SCRIPTS_DIR / "ch5_transformations" / "sierpinski_2d.py",
-        SCRIPTS_DIR / "ch5_transformations" / "sierpinski_3d.py",
-        SCRIPTS_DIR / "ch5_transformations" / "produit_cantor_koch.py",
-        SCRIPTS_DIR / "ch5_transformations" / "sierpinski_nonlinear.py",
+        CODE_DIR / "ch5_transformations" / "ifs_labels.py",
+        CODE_DIR / "ch5_transformations" / "fractales_etapes.py",
+        CODE_DIR / "ch5_transformations" / "fougere_poly.py",
+        CODE_DIR / "ch5_transformations" / "fougere_singleton.py",
+        CODE_DIR / "ch5_transformations" / "fougere_condensation.py",
+        CODE_DIR / "ch5_transformations" / "menger.py",
+        CODE_DIR / "ch5_transformations" / "sierpinski_2d.py",
+        CODE_DIR / "ch5_transformations" / "sierpinski_3d.py",
+        CODE_DIR / "ch5_transformations" / "produit_cantor_koch.py",
+        CODE_DIR / "ch5_transformations" / "sierpinski_nonlinear.py",
     ],
     "ch6": [
-        SCRIPTS_DIR / "ch6_collage_compression" / "collage_L.py",
-        SCRIPTS_DIR / "ch6_collage_compression" / "pifs_quadtree_demo.py",
-        SCRIPTS_DIR / "ch6_collage_compression" / "compression_ratio_table.py",
-        SCRIPTS_DIR / "ch6_collage_compression" / "pifs_core.py",
-        SCRIPTS_DIR / "ch6_collage_compression" / "capybara_binaire.py",
-        SCRIPTS_DIR / "ch6_collage_compression" / "pifs_couleur.py",
-        SCRIPTS_DIR / "ch6_collage_compression" / "pifs_decode_pentagone.py",
-        SCRIPTS_DIR / "ch6_collage_compression" / "isometries_d4.py",
+        CODE_DIR / "ch6_collage_compression" / "collage_L.py",
+        CODE_DIR / "ch6_collage_compression" / "pifs_quadtree_demo.py",
+        CODE_DIR / "ch6_collage_compression" / "compression_ratio_table.py",
+        CODE_DIR / "ch6_collage_compression" / "pifs_core.py",
+        CODE_DIR / "ch6_collage_compression" / "capybara_binaire.py",
+        CODE_DIR / "ch6_collage_compression" / "pifs_couleur.py",
+        CODE_DIR / "ch6_collage_compression" / "pifs_decode_pentagone.py",
+        CODE_DIR / "ch6_collage_compression" / "isometries_d4.py",
     ],
 }
 
@@ -77,7 +77,7 @@ def iter_scripts(chapter: str) -> Iterable[Path]:
 
 def run_script(script_path: Path, dry_run: bool) -> None:
     if not script_path.exists():
-        print(f"  [SKIP] Introuvable : {script_path.relative_to(SCRIPTS_DIR)}")
+        print(f"  [SKIP] Introuvable : {script_path.relative_to(REPO_ROOT)}")
         return
 
     cmd = [sys.executable, str(script_path)]
