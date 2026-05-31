@@ -1,7 +1,7 @@
-"""Triangle de Sierpinski non lineaire par iteration deterministe (chapitre 5).
+"""Triangle de Sierpiński non linéaire par itération déterministe (chapitre 5).
 
-SFI non lineaire sur le triangle droit T = {(x,y) | x >= 0, y >= 0, x + y <= 1},
-puis affichage sur un triangle equilateral par une transformation affine.
+SFI non linéaire sur le triangle droit T = {(x,y) | x >= 0, y >= 0, x + y <= 1},
+puis affichage sur un triangle équilatéral par une transformation affine.
 
 Transformations sur T (d = 2) :
     w1(x,y) = (x^2/d, y^2/d)

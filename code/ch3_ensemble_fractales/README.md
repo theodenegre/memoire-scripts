@@ -9,11 +9,11 @@ C:/Users/theod/Desktop/coding/Memoire/.venv/Scripts/python.exe Memoire/code/ch3_
 
 ## Sorties
 
-Les images sont ecrites dans:
+Les images sont écrites dans:
 - Memoire/figures/ch3_ensemble_fractales/
 - Memoire/figures/ch3_ensemble_fractales/steps/
 
 ## Scripts
 
-- cantor_etapes.py: Cantor empile A0, A1, A2, ... par iteration deterministe.
-- ifs_1d_etapes.py: IFS 1D deterministes (Cantor, union d'intervalles, convergence).
+- cantor_etapes.py: Cantor empilé A0, A1, A2, ... par itération déterministe.
+- ifs_1d_etapes.py: IFS 1D déterministes (Cantor, union d'intervalles, convergence).

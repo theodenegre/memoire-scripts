@@ -42,8 +42,8 @@ TRANSFORMS = (
 )
 
 
-# Au-dela de ~20 millions de points, l'attracteur est visuellement sature : on
-# sous-echantillonne l'ensemble courant pour eviter une explosion memoire (4^14
+# Au-delà de ~20 millions de points, l'attracteur est visuellement saturé. On
+# sous-échantillonne l'ensemble courant pour éviter une explosion mémoire (4^14
 # points feraient ~8 Go). 20 M de points (~320 Mo) donnent un rendu dense.
 MAX_POINTS = 20_000_000
 

@@ -10,21 +10,21 @@ C:/Users/theod/Desktop/coding/Memoire/.venv/Scripts/python.exe Memoire/code/ch5_
 
 ## Sorties
 
-Les images sont ecrites dans:
+Les images sont écrites dans:
 - Memoire/figures/ch5_transformations/
 - Memoire/figures/ch5_transformations/steps/
 - Memoire/figures/ch5_transformations/fern_steps_1_14/
 - Memoire/figures/ch5_transformations/fern_singleton/
 
-## Scripts (tous deterministes : iteration de l'operateur de Hutchinson)
+## Scripts (tous déterministes : itération de l'opérateur de Hutchinson)
 
-- ifs_labels.py: IFS simples annotes (carre, union de deux intervalles).
-- fractales_etapes.py: Cantor, Koch, Sierpinski, tapis, arbre (etapes).
-- fougere_poly.py: Fougere de Barnsley par iteration polygonale (figure du memoire).
-- fougere_singleton.py: Fougere a partir d'un singleton (n=0..14).
-- fougere_condensation.py: Comparaison fougere avec / sans condensation.
-- sierpinski_2d.py: Triangle de Sierpinski (deux ensembles initiaux).
-- sierpinski_nonlinear.py: Variante non lineaire du Sierpinski (figure sierpinski_nonlinear_n10).
-- menger.py: Eponge de Menger (R^3).
-- sierpinski_3d.py: Tetraedre de Sierpinski (R^3).
-- produit_cantor_koch.py: Produit cartesien Cantor x Koch (R^3).
+- ifs_labels.py: IFS simples annotés (carré, union de deux intervalles).
+- fractales_etapes.py: Cantor, Koch, Sierpiński, tapis, arbre (étapes).
+- fougere_poly.py: Fougère de Barnsley par itération polygonale (figure du mémoire).
+- fougere_singleton.py: Fougère à partir d'un singleton (n=0..14).
+- fougere_condensation.py: Comparaison fougère avec / sans condensation.
+- sierpinski_2d.py: Triangle de Sierpiński (deux ensembles initiaux).
+- sierpinski_nonlinear.py: Variante non linéaire du Sierpiński (figure sierpinski_nonlinear_n10).
+- menger.py: Éponge de Menger (R^3).
+- sierpinski_3d.py: Tétraèdre de Sierpiński (R^3).
+- produit_cantor_koch.py: Produit cartésien Cantor x Koch (R^3).

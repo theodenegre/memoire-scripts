@@ -1,9 +1,9 @@
-"""Rendu commun des solides 3D d'un attracteur, colores par hauteur.
+"""Rendu commun des solides 3D d'un attracteur, colorés par hauteur.
 
-Mutualise le panneau 3D de ``sierpinski_3d`` (tetraedres) et
-``produit_cantor_koch`` (boites) : chaque solide est un tableau de sommets
-``(k, 3)``, ses faces sont donnees par une liste d'index ``faces`` ; la couleur
-est determinee par la moyenne du solide le long d'un axe (``color_axis``).
+Mutualise le panneau 3D de ``sierpinski_3d`` (tétraèdres) et
+``produit_cantor_koch`` (boîtes). Chaque solide est un tableau de sommets
+``(k, 3)``, ses faces sont données par une liste d'index ``faces``. La couleur
+est déterminée par la moyenne du solide le long d'un axe (``color_axis``).
 """
 
 import time
@@ -27,12 +27,12 @@ def plot_solids(
     cube_limits=None,
     started_at=None,
 ):
-    """Dessine ``solids`` (faces colorees par hauteur) et sauvegarde le PNG.
+    """Dessine ``solids`` (faces colorées par hauteur) et sauvegarde le PNG.
 
-    - ``faces`` : liste de listes d'index de sommets definissant chaque face.
-    - ``color_axis`` : axe (0=x, 1=y, 2=z) servant au degrade de couleur.
-    - ``cube_limits`` : ``(lo, hi)`` pour des bornes fixes identiques sur x/y/z ;
-      si ``None``, les bornes sont calculees pour un cube englobant centre.
+    - ``faces`` : liste de listes d'index de sommets définissant chaque face.
+    - ``color_axis`` : axe (0=x, 1=y, 2=z) servant au dégradé de couleur.
+    - ``cube_limits`` : ``(lo, hi)`` pour des bornes fixes identiques sur x/y/z.
+      Si ``None``, les bornes sont calculées pour un cube englobant centré.
     """
     t0 = started_at if started_at is not None else time.perf_counter()
     cmap = cmap or plt.cm.viridis

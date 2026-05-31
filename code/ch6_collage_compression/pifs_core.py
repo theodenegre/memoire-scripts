@@ -190,7 +190,7 @@ def decompress_image(data, iterations=10):
 
     print(f"Décompression {w}x{h}, {len(codes)} codes, {iterations} itérations...")
     for i in range(iterations):
-        print(f"Iteration {i + 1}...")
+        print(f"Itération {i + 1}...")
         next_img = np.zeros_like(current_img)
         for code in codes:
             rx, ry, size = code["rx"], code["ry"], code["size"]

@@ -38,8 +38,8 @@ def make_letter_f(size=8):
     return b
 
 
-# Memes 8 isometries que ``pifs_core.get_symmetries_list`` (meme ordre), enrichies
-# d'un libelle pour l'affichage.
+# Mêmes 8 isométries que ``pifs_core.get_symmetries_list`` (même ordre), enrichies
+# d'un libellé pour l'affichage.
 D4_LABELS = [
     "Identité (sans changement)",
     "Rotation de 90° (antihoraire)",

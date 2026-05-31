@@ -126,7 +126,7 @@ def decompress_ficanrp(codes_data, max_it=30, rmse_tol=0.3, seed=42):
     states, timings = {0: current_img.copy()}, {0: 0.0}
     cumulative_ms, final_it = 0.0, max_it
 
-    print(f"  Decompression ({w}x{h}, {len(codes)} blocs)...")
+    print(f"  Décompression ({w}x{h}, {len(codes)} blocs)...")
     for it in range(1, max_it + 1):
         t0 = time.time()
         prev_img = current_img.copy()
@@ -141,11 +141,11 @@ def decompress_ficanrp(codes_data, max_it=30, rmse_tol=0.3, seed=42):
         cumulative_ms += (time.time() - t0) * 1000.0
         delta = float(np.sqrt(np.mean((current_img - prev_img) ** 2)))
         states[it], timings[it] = current_img.copy(), cumulative_ms
-        print(f"    Etape {it:2d}: cumul {cumulative_ms:.1f} ms, d={delta:.4f}")
+        print(f"    Étape {it:2d}: cumul {cumulative_ms:.1f} ms, d={delta:.4f}")
 
         if it >= 3 and delta < rmse_tol:
             final_it = it
-            print(f"    Convergence a l'etape {it} (d={delta:.4f} < {rmse_tol})")
+            print(f"    Convergence à l'étape {it} (d={delta:.4f} < {rmse_tol})")
             break
 
     return states, timings, final_it
@@ -203,7 +203,7 @@ def generate_comparison_figure(orig, states, timings, final_it, codes, compress_
                 t_ms = timings.get(it, 0.0)
                 t_str = f"{t_ms / 1000.:.2f}s" if t_ms >= 1000. else f"{t_ms:.0f}ms"
                 suffix = " (conv.)" if it == final_it else ""
-                ax.set_title(f"Etape {it}{suffix}  RMSE {rmse:.1f}  {t_str}", fontsize=7, color="#1f2937", pad=3)
+                ax.set_title(f"Étape {it}{suffix}  RMSE {rmse:.1f}  {t_str}", fontsize=7, color="#1f2937", pad=3)
             else:
                 ax.axis("off")
                 continue
@@ -214,7 +214,7 @@ def generate_comparison_figure(orig, states, timings, final_it, codes, compress_
         ax.axis("off")
 
     caption = (f"Compression : {compress_time_s:.1f}s  |  {len(codes)} blocs  {_block_stats_str(codes)}"
-               "  |  temps indiques : cumules depuis etape 0")
+               "  |  temps indiqués : cumulés depuis étape 0")
     fig.text(0.5, 0.01, caption, ha="center", fontsize=7, color="#374151")
     timed_savefig(plt, output_path, t0, bbox_inches="tight", pad_inches=0.12)
     plt.close()
@@ -273,7 +273,7 @@ def main():
         generate_comparison_figure(raw_img.astype(np.float32), states, timings, final_it,
                                    codes_data["codes"], compress_time, out_img)
         print(f"Sauvegarde: {out_img}")
-        print(f"  RMSE final (etape {final_it}): {np.sqrt(np.mean((raw_img.astype(np.float32) - states[final_it]) ** 2)):.4f}")
+        print(f"  RMSE final (étape {final_it}): {np.sqrt(np.mean((raw_img.astype(np.float32) - states[final_it]) ** 2)):.4f}")
 
     generate_grid_figure(grid_data, FIGURES_DIR / "decompression_grilles_comparison.png")
     print("Sauvegarde grilles.")
