@@ -1,4 +1,4 @@
-# Scripts du mémoire — Fractales et compression fractale d'images
+# Scripts du mémoire pour les fractales et la compression d'images
 
 Ce dossier est **autonome** : il contient tous les scripts Python
 nécessaires à la génération des figures du mémoire, ainsi que les
