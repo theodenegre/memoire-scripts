@@ -1,11 +1,17 @@
-"""Compression PIFS quadtree des photos soeurette (IMG_1928 et IMG_1857).
+"""Compression PIFS quadtree couleur des photos soeurette (soeurette1 et soeurette2).
+
+L'image RGB est traitée comme trois images en niveaux de gris independantes
+(I_R, I_G, I_B). Chaque canal est compresse puis decompresse par le meme PIFS
+quadtree vectorise (FICANRP) que le cas gris, puis les trois canaux reconstruits
+sont recombines.
 
 Étapes :
 1. Recadre chaque image à la plus haute puissance de 2 de chaque côté,
    en coupant équitablement à gauche/droite et haut/bas (crop centré).
-2. Compresse par l'algorithme FICANRP vectorisé (quadtree adaptatif),
-   seuil d'erreur maximale par carré : 150.
-3. Décompresse depuis un bruit aléatoire (théorème de Banach).
+2. Compresse chaque canal (R, G, B) par l'algorithme FICANRP vectorisé
+   (quadtree adaptatif), seuil d'erreur maximale par carré : 150.
+3. Décompresse chaque canal depuis un bruit aléatoire (théorème de Banach),
+   puis recombine en image couleur.
 4. Génère les figures de comparaison et d'arbre quaternaire.
 
 Sorties :
@@ -44,14 +50,17 @@ SOURCES_DIR   = ROOT / "figures" / "sources"
 MEMOIRE_DIR   = ROOT                          # contient les JPG source
 
 IMG_PATHS = [
-    MEMOIRE_DIR / "IMG_1928.jpg",
-    MEMOIRE_DIR / "IMG_1857.jpg",
+    SOURCES_DIR / "soeurette1.jpg",
+    SOURCES_DIR / "soeurette2.jpg",
 ]
 NAMES = ["soeurette1", "soeurette2"]
 
 # ── Paramètres de compression ─────────────────────────────────────────────────
-ERROR_THRESHOLD = 150.0
+ERROR_THRESHOLD = 50.0
 MIN_BLOCK_SIZE  = 4
+# Résolution de travail : on recadre à une puissance de 2 puis on redimensionne
+# à TARGET_SIZE x TARGET_SIZE (compromis qualité / temps de calcul).
+TARGET_SIZE     = 512
 # MAX_BLOCK_SIZE est calculé dynamiquement = plus grande puissance de 2 telle que
 # les blocs domaines (2x) rentrent dans l'image : max_block_size = prev_p2(dim // 2)
 DOMAIN_STEP     = 2.0      # pas de balayage des domaines (en fractions de taille)
@@ -77,7 +86,7 @@ def max_block_for_image(h: int, w: int) -> int:
 
 
 def center_crop_to_power_of_two(img_path: Path, save_path: Path) -> np.ndarray:
-    """Charge, recadre et sauvegarde l'image recadrée. Renvoie le tableau numpy."""
+    """Charge, recadre et sauvegarde l'image RGB recadrée. Renvoie le tableau (h, w, 3)."""
     pil = Image.open(img_path).convert("RGB")
     w, h = pil.size
 
@@ -90,13 +99,16 @@ def center_crop_to_power_of_two(img_path: Path, save_path: Path) -> np.ndarray:
     bottom = top  + th
 
     cropped = pil.crop((left, top, right, bottom))
+    if TARGET_SIZE is not None and (tw, th) != (TARGET_SIZE, TARGET_SIZE):
+        cropped = cropped.resize((TARGET_SIZE, TARGET_SIZE), Image.Resampling.LANCZOS)
     save_path.parent.mkdir(parents=True, exist_ok=True)
     cropped.save(str(save_path))
-    print(f"  {img_path.name} : {w}x{h} -> recadrage centre -> {tw}x{th}")
+    print(f"  {img_path.name} : {w}x{h} -> recadrage centre {tw}x{th} -> "
+          f"redim {cropped.size[0]}x{cropped.size[1]}")
     print(f"  Supprime : {w-tw}px horizontaux ({(w-tw)//2} de chaque cote), "
           f"{h-th}px verticaux ({(h-th)//2} de chaque cote)")
     print(f"  Sauvegarde : {save_path}")
-    return np.array(cropped.convert("L"), dtype=np.float32)
+    return np.array(cropped, dtype=np.float32)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -240,6 +252,45 @@ def decompress_ficanrp(codes_data, max_it=30, rmse_tol=0.3, seed=42):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 3c. Orchestration couleur : un canal R, G, B traite independamment
+# ─────────────────────────────────────────────────────────────────────────────
+
+CHANNEL_NAMES = ["R", "G", "B"]
+
+
+def compress_rgb(rgb, config):
+    """Compresse les 3 canaux (R, G, B). Renvoie une liste de 3 codes_data."""
+    channels = []
+    for c in range(3):
+        print(f"  Canal {CHANNEL_NAMES[c]} ...")
+        channels.append(compress_ficanrp_fast(rgb[:, :, c], config))
+    return channels
+
+
+def decompress_rgb(channels_data, max_it=30, rmse_tol=0.3, seed=42):
+    """Decompresse les 3 canaux et recombine. Renvoie les etats RGB empiles.
+
+    Renvoie (states_rgb, timings, final_it) ou states_rgb[it] est (h, w, 3) uint8.
+    Les etats des 3 canaux sont alignes sur le nombre d'etapes du canal le plus lent.
+    """
+    per_channel = [decompress_ficanrp(cd, max_it=max_it, rmse_tol=rmse_tol, seed=seed)
+                   for cd in channels_data]
+    final_it = max(fit for _, _, fit in per_channel)
+
+    states_rgb, timings = {}, {}
+    for it in range(final_it + 1):
+        chans = []
+        cumul = 0.0
+        for st, tm, fit in per_channel:
+            key = it if it in st else fit          # canal converge plus tot : on fige
+            chans.append(st[key])
+            cumul = max(cumul, tm.get(key, tm.get(fit, 0.0)))
+        states_rgb[it] = np.clip(np.stack(chans, axis=2), 0, 255).astype(np.uint8)
+        timings[it] = cumul
+    return states_rgb, timings, final_it
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 3b. Sauvegarde binaire (.fif) et stats (.txt)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -263,28 +314,30 @@ def save_fif(filepath, codes_data):
     return fp.stat().st_size
 
 
-def save_stats(filepath, name, codes_data, orig_w, orig_h,
+def save_stats(filepath, name, channels_data, orig_w, orig_h,
                compress_time_s, rmse_final, max_block):
-    """Ecrit un rapport texte avec taux de compression et details."""
+    """Ecrit un rapport texte couleur (3 canaux) avec taux de compression."""
     from collections import Counter
-    codes = codes_data["codes"]
-    n_codes = len(codes)
-    raw_bytes = orig_w * orig_h          # niveaux de gris 8 bits
-    fif_bytes = 8 + 4 + n_codes * 19    # en-tete + codes (19 oct/code : HHHBHHff)
+    all_codes = [c for cd in channels_data for c in cd["codes"]]
+    n_codes = len(all_codes)
+    raw_bytes = orig_w * orig_h * 3          # RGB 8 bits par canal
+    fif_bytes = 3 * (8 + 4) + n_codes * 19   # 3 en-tetes + codes (19 oct/code : HHHBHHff)
     ratio = raw_bytes / fif_bytes
-    counts = Counter(c["size"] for c in codes)
+    counts = Counter(c["size"] for c in all_codes)
     with open(filepath, "w", encoding="utf-8") as f:
-        f.write(f"=== Rapport de compression PIFS quadtree : {name} ===\n")
-        f.write(f"Image (niveaux de gris) : {orig_w}x{orig_h} px\n")
+        f.write(f"=== Rapport de compression PIFS quadtree couleur : {name} ===\n")
+        f.write(f"Image (RGB)             : {orig_w}x{orig_h} px x 3 canaux\n")
         f.write(f"Taille brute            : {raw_bytes:,} octets ({raw_bytes/1024:.1f} Ko)\n")
         f.write(f"Taille compressee .fif  : {fif_bytes:,} octets ({fif_bytes/1024:.1f} Ko)\n")
         f.write(f"Taux de compression     : {ratio:.2f}:1\n")
-        f.write(f"Nombre de codes PIFS    : {n_codes:,}\n")
+        f.write(f"Nombre de codes PIFS    : {n_codes:,} (")
+        f.write(", ".join(f"{CHANNEL_NAMES[i]}={len(cd['codes'])}"
+                          for i, cd in enumerate(channels_data)) + ")\n")
         f.write(f"Taille max bloc racine  : {max_block} px\n")
         f.write(f"Seuil d'erreur          : {ERROR_THRESHOLD:.0f} (MSE)\n")
         f.write(f"Temps de compression    : {compress_time_s:.1f} s\n")
-        f.write(f"RMSE final              : {rmse_final:.4f}\n")
-        f.write(f"\nRepartition des tailles de blocs :\n")
+        f.write(f"RMSE final (RGB)        : {rmse_final:.4f}\n")
+        f.write(f"\nRepartition des tailles de blocs (3 canaux) :\n")
         for sz in sorted(counts):
             pct = 100.0 * counts[sz] / n_codes
             f.write(f"  {sz:4d} px : {counts[sz]:6d} blocs ({pct:.1f}%)\n")
@@ -302,8 +355,8 @@ def _block_stats_str(codes):
     return "  ".join(f"{counts[s]}×{s}px" for s in sorted(counts))
 
 
-def _draw_quadtree_grid(ax, img, codes):
-    h, w = img.shape
+def _draw_quadtree_grid(ax, shape_hw, codes):
+    h, w = shape_hw
     for code in codes:
         ax.add_patch(mpatches.Rectangle(
             (code["rx"] - 0.5, code["ry"] - 0.5), code["size"], code["size"],
@@ -314,9 +367,9 @@ def _draw_quadtree_grid(ax, img, codes):
 
 def generate_comparison_figure(name, orig, states, timings, final_it, codes,
                                 compress_time_s, output_path):
-    """Figure 3×2 : original | convergé | étapes 1,2,3 | grille quadtree."""
+    """Figure 3×2 : original | convergé | étapes 1,2,3 | grille quadtree (couleur)."""
     t0     = time.perf_counter()
-    h_img, w_img = orig.shape
+    h_img, w_img = orig.shape[:2]
 
     layout = [
         (0, 0, ("img", None)),
@@ -329,22 +382,25 @@ def generate_comparison_figure(name, orig, states, timings, final_it, codes,
 
     fig, axes = plt.subplots(3, 2, figsize=(6.4, 9.6), dpi=200,
                              gridspec_kw={"hspace": 0.35, "wspace": 0.05})
-    fig.suptitle(f"Compression quadtree PIFS - {name}\n"
-                 f"seuil={ERROR_THRESHOLD:.0f}  |  {len(codes)} blocs  |  "
+    fig.suptitle(f"Compression quadtree PIFS couleur - {name}\n"
+                 f"seuil={ERROR_THRESHOLD:.0f}  |  {len(codes)} blocs (canal vert)  |  "
                  f"resolution {w_img}x{h_img}px",
                  fontsize=9, color="#1f2937", y=0.99)
+
+    orig_u8 = np.clip(orig, 0, 255).astype(np.uint8)
 
     for row, col, content in layout:
         ax = axes[row, col]
         if content[0] == "img":
             it = content[1]
             if it is None:
-                ax.imshow(orig, cmap="gray", vmin=0, vmax=255)
+                ax.imshow(orig_u8)
                 ax.set_title(f"Originale ({w_img}x{h_img}px)", fontsize=8,
                              color="#1f2937", pad=3)
             elif it in states:
-                ax.imshow(states[it], cmap="gray", vmin=0, vmax=255)
-                rmse  = np.sqrt(np.mean((orig - states[it]) ** 2))
+                ax.imshow(states[it])
+                rmse  = np.sqrt(np.mean(
+                    (orig.astype(np.float32) - states[it].astype(np.float32)) ** 2))
                 t_ms  = timings.get(it, 0.0)
                 t_str = f"{t_ms/1000.:.2f}s" if t_ms >= 1000. else f"{t_ms:.0f}ms"
                 suf   = " (conv.)" if it == final_it else ""
@@ -356,8 +412,8 @@ def generate_comparison_figure(name, orig, states, timings, final_it, codes,
         else:  # grille quadtree
             ax.imshow(np.full((h_img, w_img), 255, dtype=np.float32),
                       cmap="gray", vmin=0, vmax=255)
-            _draw_quadtree_grid(ax, orig, codes)
-            ax.set_title("Arbre quaternaire (partition)", fontsize=8,
+            _draw_quadtree_grid(ax, (h_img, w_img), codes)
+            ax.set_title("Arbre quaternaire (canal vert)", fontsize=8,
                          color="#1f2937", pad=3)
         ax.axis("off")
 
@@ -377,10 +433,10 @@ def generate_grid_overview(examples_data, output_path):
     if n == 1:
         axes = [axes]
     for ax, (name, orig, codes) in zip(axes, examples_data):
-        h_i, w_i = orig.shape
+        h_i, w_i = orig.shape[:2]
         ax.imshow(np.full((h_i, w_i), 255, dtype=np.float32), cmap="gray",
                   vmin=0, vmax=255)
-        _draw_quadtree_grid(ax, orig, codes)
+        _draw_quadtree_grid(ax, (h_i, w_i), codes)
         ax.set_title(f"{name}  ({w_i}x{h_i})  {len(codes)} blocs",
                      fontsize=9, color="#1f2937")
         ax.axis("off")
@@ -414,63 +470,67 @@ def main():
         print(f"  {name.upper()} - {img_path.name}")
         print(f"{'='*60}")
 
-        # 1. Recadrage centre a la plus haute puissance de 2
+        # 1. Recadrage centre a la plus haute puissance de 2 (RGB)
         cropped_path = SOURCES_DIR / f"{name}_cropped.png"
-        img_gray = center_crop_to_power_of_two(img_path, cropped_path)
-        orig_h, orig_w = img_gray.shape
+        img_rgb = center_crop_to_power_of_two(img_path, cropped_path)
+        orig_h, orig_w = img_rgb.shape[:2]
 
         # max_block_size dynamique : plus grande puissance de 2 t.q. domaines (2B) rentrent
         dyn_max = max_block_for_image(orig_h, orig_w)
         config["max_block_size"] = dyn_max
         print(f"  max_block_size calcule : {dyn_max} px (image {orig_w}x{orig_h})")
 
-        # 2. Compression quadtree
+        # 2. Compression quadtree des 3 canaux
         import pickle
         ckpt_path = FIGURES_DIR / f"{name}_codes.pkl"
         if ckpt_path.exists():
             print(f"  Checkpoint trouve, chargement : {ckpt_path.name}")
             with open(ckpt_path, "rb") as f:
-                codes_data, compress_time = pickle.load(f)
-            n_codes = len(codes_data["codes"])
-            print(f"  {n_codes} blocs (depuis checkpoint)")
+                channels_data, compress_time = pickle.load(f)
+            n_codes = sum(len(cd["codes"]) for cd in channels_data)
+            print(f"  {n_codes} blocs (3 canaux, depuis checkpoint)")
         else:
-            print(f"\n  Compression (seuil={ERROR_THRESHOLD:.0f}, max_bloc={dyn_max}px)...")
+            print(f"\n  Compression couleur (seuil={ERROR_THRESHOLD:.0f}, max_bloc={dyn_max}px)...")
             t0 = time.time()
-            codes_data = compress_ficanrp_fast(img_gray, config)
+            channels_data = compress_rgb(img_rgb, config)
             compress_time = time.time() - t0
-            n_codes = len(codes_data["codes"])
-            print(f"  {n_codes} blocs en {compress_time:.2f}s")
+            n_codes = sum(len(cd["codes"]) for cd in channels_data)
+            print(f"  {n_codes} blocs (3 canaux) en {compress_time:.2f}s")
             with open(ckpt_path, "wb") as f:
-                pickle.dump((codes_data, compress_time), f)
+                pickle.dump((channels_data, compress_time), f)
             print(f"  Checkpoint sauvegarde : {ckpt_path.name}")
 
-        oh = codes_data.get("orig_h", orig_h)
-        ow = codes_data.get("orig_w", orig_w)
-        grid_data.append((name, img_gray[:oh, :ow], codes_data["codes"]))
+        # canal de reference (vert) pour les dimensions et la grille quadtree
+        oh = channels_data[1].get("orig_h", orig_h)
+        ow = channels_data[1].get("orig_w", orig_w)
+        green_codes = channels_data[1]["codes"]
+        grid_data.append((name, img_rgb[:oh, :ow], green_codes))
 
-        # 2b. Sauvegarde .fif + stats
-        fif_path   = FIGURES_DIR / f"{name}.fif"
+        # 2b. Sauvegarde .fif (un par canal) + stats
+        for ci, cd in enumerate(channels_data):
+            fif_path = FIGURES_DIR / f"{name}_{CHANNEL_NAMES[ci]}.fif"
+            fif_size = save_fif(fif_path, cd)
+            print(f"  FIF {CHANNEL_NAMES[ci]} : {fif_path.name}  ({fif_size/1024:.1f} Ko)")
         stats_path = FIGURES_DIR / f"{name}_stats.txt"
-        fif_size   = save_fif(fif_path, codes_data)
-        print(f"  FIF : {fif_path.name}  ({fif_size/1024:.1f} Ko)")
 
-        # 3. Decompression (Banach)
+        # 3. Decompression couleur (Banach, 3 canaux recombines)
         print()
-        states, timings, final_it = decompress_ficanrp(codes_data)
+        states, timings, final_it = decompress_rgb(channels_data)
         states = {k: v[:oh, :ow] for k, v in states.items()}
 
+        orig_crop = img_rgb[:oh, :ow]
         rmse_final = float(np.sqrt(np.mean(
-            (img_gray[:oh, :ow] - states[final_it]) ** 2)))
-        print(f"  RMSE final (etape {final_it}): {rmse_final:.4f}")
+            (orig_crop.astype(np.float32) - states[final_it].astype(np.float32)) ** 2)))
+        print(f"  RMSE final RGB (etape {final_it}): {rmse_final:.4f}")
 
-        save_stats(stats_path, name, codes_data, ow, oh,
+        save_stats(stats_path, name, channels_data, ow, oh,
                    compress_time, rmse_final, dyn_max)
 
         # 4. Figure de comparaison
         out_fig = FIGURES_DIR / f"{name}_quadtree_comparison.png"
         generate_comparison_figure(
-            name, img_gray[:oh, :ow], states, timings, final_it,
-            codes_data["codes"], compress_time, out_fig)
+            name, orig_crop, states, timings, final_it,
+            green_codes, compress_time, out_fig)
 
     # Vue d'ensemble des deux arbres quaternaires
     generate_grid_overview(grid_data,
